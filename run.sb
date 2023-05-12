@@ -1,0 +1,32 @@
+#!/bin/bash -login
+
+### define resources needed:
+#SBATCH --time=72:00:00 
+
+### need to set ppn=#workers, mem=(#worker+1)*mem_myfunc
+#SBATCH --nodes=1
+#SBATCH --ntasks=10
+#SBATCH --cpus-per-task=8
+###SBATCH --gpus-per-node=8
+###SBATCH --gpus=2
+###SBATCH --gres=gpu:2
+###SBATCH --gres-flags=enforce-binding
+#SBATCH --mem=200G
+#SBATCH --account=cmse
+#SBATCH --mail-user=yurong@msu.edu     # Change to your email 
+#SBATCH --mail-type=FAIL,END          # Email you if fail or ends
+#SBATCH --output=many_parfor_local.sb.o%j
+#SBATCH --error=many_parfor_local.sb.e%j
+####SBATCH --exclusive
+
+module load julia/1.5.2
+cd ${SLURM_SUBMIT_DIR}
+export JULIA_NUM_THREADS=8
+
+julia pre_process_data_seg_threshold.jl
+julia -p 10 run.jl
+ret=$?
+
+scontrol show job ${SLURM_JOBID}
+
+exit $ret
