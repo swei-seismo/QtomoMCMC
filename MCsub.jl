@@ -74,7 +74,7 @@ function xy2lonlat(
     # yurong 05/12/23 high latitude correction
     # lon2 = xx .* r2d ./ re .+ lon0
     lat2 = yy .* r2d ./ re .+ lat0
-    lon2 = xx .* r2d ./ re ./ cos.(lat1 ./ r2d) .+ lon0
+    lon2 = xx .* r2d ./ re ./ cos.(lat2 ./ r2d) .+ lon0
     
     return lon2, lat2
 end
