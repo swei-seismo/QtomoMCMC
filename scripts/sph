@@ -1,0 +1,58 @@
+if par["coordinates"] == 1
+    for z0 in dataStruct["zVec"]
+        m_iz0 = []
+        w_chain = []
+        w = [] # weights
+        m = zeros(length(vec(dataStruct["xVec"])), length(vec(dataStruct["yVec"])))
+
+        for i = 1:length(model_hist)
+
+            if par["average_style"] == 2
+                w_i = []
+            end
+            for j = 1:length(model_hist[i])
+
+                m  = [ sph_v_nearest(xs, ys, z0, model_hist[i][j])
+                    for xs in vec(dataStruct["xVec"]), ys in vec(dataStruct["yVec"]) ]
+                append!(m_iz0,[m])
+                if par["average_style"] == 2
+                    append!(w_i, model_hist[i][j].phi)
+                end
+            end
+            if par["average_style"] == 1
+                append!(w_chain , 1)
+            elseif par["average_style"] == 2
+                append!(w_chain , mean(w_i))
+            elseif par["average_style"] == 3
+                append!(w_chain , 1/var(m_xy[end-length(model_hist[i])+1:end]))
+            end
+        end
+        w_chain_norm = w_chain/sum(w_chain)
+        println("Weights for each chain: ", w_chain_norm)
+        for i = 1:length(model_hist)
+            append!(w, w_chain_norm[i]*ones(length(model_hist[i])))
+        end
+
+        model_mean   = sum(w .* m_iz0)
+        poststd         = zeros(size(m_iz0[1]))
+        for i = 1:length(poststd)
+            poststd[i] = std([m[i] for m in m_iz0], Weights(w))
+        end
+        mask         = ones(size(poststd))
+        for i = 1:length(poststd)
+            if poststd[i] > std_threshold
+                mask[i] = NaN
+            end
+        end
+        mask_model = mask .* model_mean
+        open(par["base_dir"] * "TongaAttenData/Interpolated_Tonga_Atten_Model.txt", "a") do io
+            for i in 1:length(dataStruct["xVec"])
+                for j in 1:length(dataStruct["yVec"])
+                    write(io, string(dataStruct["xVec"][i]) *"\t "* string(dataStruct["yVec"][j]) *
+                        "\t " * string(z0) *"\t " * string(model_mean[i,j]) *"\t "* 
+                        string(poststd[i,j]) *"\t " * string(mask_model[i,j]) *"\n")
+                end
+            end
+        end
+    end
+elseif par["coordinates"] == 2
