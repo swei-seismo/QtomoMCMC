@@ -11,8 +11,9 @@ using DelimitedFiles
 @everywhere include("./scripts/load.jl")
 @everywhere include("./scripts/inversion_function.jl")
 
-std_threshold = 5
-transparency_threshold = 13
+Total_mask = 999
+Alpha_mask = 5
+
 lat0 = -23.1000
 lon0 = 174.6000
 beta = 0.463647609
@@ -64,7 +65,7 @@ elseif par["average_style"] == 2
 elseif par["average_style"] == 3
     println("Using Inverse Variance Weights")
 elseif par["average_style"] == 4
-    println("Using cantral limit theorem likelihood")
+    println("Using Central limit theorem likelihood")
 end
 
 # The whole model
@@ -74,7 +75,8 @@ end
 m_chain = []
 w_chain = []
 m = zeros(length(vec(dataStruct["xVec"])), length(vec(dataStruct["yVec"])), length(vec(dataStruct["zVec"])))
-
+m_all = []
+w_all = []
 for i = 1:length(model_hist)
 
     m_i = []
@@ -89,6 +91,7 @@ for i = 1:length(model_hist)
         m  = [ interp_nearest(par,xs, ys, zs, model_hist[i][j])
             for xs in vec(dataStruct["xVec"]), ys in vec(dataStruct["yVec"]), zs in vec(dataStruct["zVec"]) ]
         append!(m_i,[m])
+        append!(m_all,[m])
         if par["average_style"] == 2
             append!(w_i, exp(-model_hist[i][j].phi/length(dataStruct["tS"])))
         end
@@ -96,46 +99,56 @@ for i = 1:length(model_hist)
             append!(w_i, model_hist[i][j].likelihood)
         end
     end
+    
     if par["average_style"] == 1
-        append!(w_chain , 1)
+        w_ichain = 1
     elseif par["average_style"] == 2
-        append!(w_chain , mean(w_i))
+        w_ichain = mean(w_i)
     elseif par["average_style"] == 3
-        append!(w_chain , 1 / mean(var(m_i)))
+        w_ichain = 1 / mean(var(m_i))
     elseif par["average_style"] == 4
-        append!(w_chain , mean(w_i))
+        w_ichain = mean(w_i)
     end
     append!(m_chain, [mean(m_i)])
+    append!(w_chain, w_ichain)
+    append!(w_all, ones(length(model_hist[i]))*w_ichain)
 end
+w_all = Float64.(w_all)
 w_chain_norm = w_chain/sum(w_chain)
 println("Weights for each chain: ", w_chain_norm)
 
-model_mean_xy   = sum(w_chain_norm .* m_chain)
-
-poststd_xy         = zeros(size(m_chain[1]))
-for i = 1:length(poststd_xy)
-    poststd_xy[i] = std([m[i] for m in m_chain], Weights(w_chain_norm))
+model_mean = zeros(size(m_all[1]))
+model_poststd = zeros(size(m_all[1]))
+# model_skewness = zeros(size(m_all[1]))
+# model_kurtosis = zeros(size(m_all[1]))
+for i = 1:length(model_mean)
+    model_mean[i] =  StatsBase.mean([m[i] for m in m_all],Weights(w_all))
+    model_poststd[i] =  StatsBase.std([m[i] for m in m_all],Weights(w_all))
+    # model_skewness[i] = StatsBase.skewness([m[i] for m in m_all],Weights(w_all))
+    # model_kurtosis[i] =  StatsBase.kurtosis([m[i] for m in m_all],Weights(w_all))
 end
-mask_xy         = ones(size(poststd_xy))
-for i = 1:length(poststd_xy)
-    if poststd_xy[i] > std_threshold 
-        mask_xy[i] = NaN
+
+model_mask         = ones(size(model_poststd))
+for i = 1:length(model_poststd)
+    if model_poststd[i] > Total_mask 
+        model_mask[i] = NaN
     end
 end
-mask_model_xy = mask_xy .* model_mean_xy
+masked_model = model_mask .* model_mean
+
 open(par["base_dir"] * "TongaAttenData/Interpolated_Tonga_Atten_Model.txt", "a") do io
     for k in 1:length(dataStruct["zVec"])
         for i in 1:length(dataStruct["xVec"])
             for j in 1:length(dataStruct["yVec"])
                 if par["coordinates"] == 1
                     write(io, string(dataStruct["xVec"][i]) *"\t "* string(dataStruct["yVec"][j]) *
-                        "\t " * string(dataStruct["zVec"][k]) *"\t " * string(model_mean_xy[i,j,k]) *"\t "* 
-                        string(poststd_xy[i,j,k]) *"\t " * string(mask_model_xy[i,j,k]) *"\n")
+                        "\t " * string(dataStruct["zVec"][k]) *"\t " * string(model_mean[i,j,k]) *"\t "* 
+                        string(model_poststd[i,j,k]) *"\t " * string(masked_model[i,j,k]) *"\n")
                 else
                     (lon,lat) = xy2lonlat(lon0,lat0,beta,dataStruct["xVec"][i],dataStruct["yVec"][j])
                     write(io, string(lon) *"\t "* string(lat) *"\t " * string(dataStruct["zVec"][k]) *"\t "
-                    * string(model_mean_xy[i,j,k]) *"\t "* string(poststd_xy[i,j,k]) *"\t " 
-                    * string(mask_model_xy[i,j,k]) *"\n")
+                    * string(model_mean[i,j,k]) *"\t "* string(model_poststd[i,j,k]) *"\t " 
+                    * string(masked_model[i,j,k]) *"\n")
                 end
             end
         end
@@ -148,7 +161,8 @@ end
 for l0 in par["z0"]
     m_chain = []
     m = zeros(length(vec(dataStruct["xVec"])), length(vec(dataStruct["yVec"])))
-
+    m_all = []
+    
     for i = 1:length(model_hist)
 
         m_i = []
@@ -157,34 +171,40 @@ for l0 in par["z0"]
             m  = [ interp_nearest(par,xs, ys, l0, model_hist[i][j])
                 for xs in vec(dataStruct["xVec"]), ys in vec(dataStruct["yVec"]) ]
             append!(m_i,[m])
-
+            append!(m_all,[m])
         end
         append!(m_chain, [mean(m_i)])
     end
 
-    model_mean_xy   = sum(w_chain_norm .* m_chain)
-
-    poststd_xy         = zeros(size(m_chain[1]))
-    for i = 1:length(poststd_xy)
-        poststd_xy[i] = std([m[i] for m in m_chain], Weights(w_chain_norm))
+    model_mean = zeros(size(m_all[1]))
+    model_poststd = zeros(size(m_all[1]))
+    # model_skewness = zeros(size(m_all[1]))
+    # model_kurtosis = zeros(size(m_all[1]))
+    for i = 1:length(model_mean)
+        model_mean[i] =  StatsBase.mean([m[i] for m in m_all],Weights(w_all))
+        model_poststd[i] =  StatsBase.std([m[i] for m in m_all],Weights(w_all))
+        # model_skewness[i] = StatsBase.skewness([m[i] for m in m_all],Weights(w_all))
+        # model_kurtosis[i] =  StatsBase.kurtosis([m[i] for m in m_all],Weights(w_all))
     end
-    mask_xy         = ones(size(poststd_xy))
-    for i = 1:length(poststd_xy)
-        if poststd_xy[i] > std_threshold 
-            mask_xy[i] = NaN
+
+    model_mask         = ones(size(model_poststd))
+    for i = 1:length(model_poststd)
+        if model_poststd[i] > Total_mask 
+            model_mask[i] = NaN
         end
     end
-    mask_model_xy = mask_xy .* model_mean_xy
+    masked_model = model_mask .* model_mean
+
     open(par["base_dir"] * "TongaAttenData/Tonga_Map_Mask_"*string(l0)*".txt", "w") do io
         for i in 1:length(dataStruct["xVec"])
             for j in 1:length(dataStruct["yVec"])
                 if par["coordinates"] == 1
                     write(io, string(dataStruct["xVec"][i]) *"  "* string(dataStruct["yVec"][j]) *
-                        "  " * string(mask_model_xy[i,j]) *"\n")
+                        "  " * string(masked_model[i,j]) *"\n")
                 else
                     (lon,lat) = xy2lonlat(lon0,lat0,beta,dataStruct["xVec"][i],dataStruct["yVec"][j])
                     write(io, string(lon) *"  "* string(lat) *
-                        "  " * string(mask_model_xy[i,j]) *"\n")
+                        "  " * string(masked_model[i,j]) *"\n")
                 end
             end
         end
@@ -195,11 +215,11 @@ for l0 in par["z0"]
             for j in 1:length(dataStruct["yVec"])
                 if par["coordinates"] == 1
                     write(io, string(dataStruct["xVec"][i]) *"  "* string(dataStruct["yVec"][j]) *
-                        "  " * string(model_mean_xy[i,j]) *"\n")
+                        "  " * string(model_mean[i,j]) *"\n")
                 else
                     (lon,lat) = xy2lonlat(lon0,lat0,beta,dataStruct["xVec"][i],dataStruct["yVec"][j])
                     write(io, string(lon) *"  "* string(lat) *
-                        "  " * string(model_mean_xy[i,j]) *"\n")
+                        "  " * string(model_mean[i,j]) *"\n")
                 end
             end
         end
@@ -210,11 +230,11 @@ for l0 in par["z0"]
             for j in 1:length(dataStruct["yVec"])
                 if par["coordinates"] == 1
                     write(io, string(dataStruct["xVec"][i]) *"  "* string(dataStruct["yVec"][j]) *
-                        "  " * string(poststd_xy[i,j]) *"\n")
+                        "  " * string(model_poststd[i,j]) *"\n")
                 else
                     (lon,lat) = xy2lonlat(lon0,lat0,beta,dataStruct["xVec"][i],dataStruct["yVec"][j])
                     write(io, string(lon) *"  "* string(lat) *
-                        "  " * string(poststd_xy[i,j]) *"\n")
+                        "  " * string(model_poststd[i,j]) *"\n")
                 end
             end
         end
@@ -223,12 +243,13 @@ for l0 in par["z0"]
     open(par["base_dir"] * "TongaAttenData/Tonga_Map_Transparency_"*string(l0)*".txt", "w") do io
         for i in 1:length(dataStruct["xVec"])
             for j in 1:length(dataStruct["yVec"])
-                if poststd_xy[i,j]<std_threshold
+                if model_poststd[i,j]<Alpha_mask
                     transparency = 0
-                elseif poststd_xy[i,j]<transparency_threshold
-                    transparency = (poststd_xy[i,j]-std_threshold)/(transparency_threshold-std_threshold)
+                elseif model_poststd[i,j]<Total_mask
+                    # transparency = (model_poststd[i,j]-Total_mask)/(Alpha_mask-Total_mask)
+                    transparency = 0.9
                 else
-                    transparency = 1
+                    transparency = -1
                 end
                 if par["coordinates"] == 1
                     write(io, string(dataStruct["xVec"][i]) *"  "* string(dataStruct["yVec"][j]) *
