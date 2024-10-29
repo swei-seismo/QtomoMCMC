@@ -1,5 +1,5 @@
 #====Inversion setting parameters====#
-coordinates: 2                # ::Int64.    1: Spherical Coordinates, 2: Cartesian Coordinates
+coordinates: 1                # ::Int64.    1: Spherical Coordinates, 2: Cartesian Coordinates
     # note that if the model space is rotated (beta != 0), the [x,y] might be different for each layer 
     # due to the grid creation, we are choosing the first layer of [x,y] to interpolate the velocity
 
@@ -25,14 +25,16 @@ litho_thickness: 20.0         # ::Float64.  Lithospheric thickness in km. Estima
 DataDir: "/mnt/home/yurong/Data/MCMC/Tonga/Data/"            # ::String.   The directory of the data
 PREM: "PREM_1s.csv"           # ::String.   The path of the PREM model
 sta_info: "stations.dat"      # ::String.   The path of the station information: Name, lon, lat, elevation
-vel: "lau"                    # ::String.   Which velocity model to use: lau/UUP07
+vel: "Fan2024"                    # ::String.   Which velocity model to use: lau/UUP07/Fan2024
 vel_UUP07: "UUP07_vp_abs_mod" # ::String.   The path of the UUP07 velocity model
-vel_lau: "lau.vel"            # ::String.   The path of the Lau velocity model 
-tstar_file: "p_tstar_cart_all.dat"  # ::String.   The path of the input t* data
+vel_lau: "lau.vel"            # ::String.   The path of the Lau velocity model
+vel_Fan2024: "Vp_model_Fan.dat"        # ::String.   The path of the Fan2024 velocity model
+tstar_file: "p_tstar_input.dat"  # ::String.   The path of the input t* data
   # For my current project, "p_tstar_input.dat" is the t* file containing orid infomation
   # "p_tstar_cart_all.dat" in DataDir is the t* file without orid information. And it is used for pseudo-bending raytracing
-rayp_file: "raypaths.p"  # ::String.   The path of the input raypath data
+rayp_file: "raypaths_Fan.dat"  # ::String.   The path of the input raypath data
   # For my current project, "raypaths_UUP07.dat" is the raypath file in spherical coordinate from tomoDD (pseudo-bending)
+  # "raypaths_Fan.dat" is the raypath file in spherical coordinate from Fan2024 (pseudo-bending)
   # "raypaths_all.p" is the raypath file in cartesian coordinate from pseudo-bending raytracing, which is paired with "p_tstar_cart.dat"
 #====File Paths====#
 
@@ -71,7 +73,7 @@ latlonnodeSpacing: 0.2        # ::Float64.  In degree. Not actually part of the 
 #=====map parameters=====#
 
 #====Plot Cross section parameters====#
-average_style: 1              # ::Int64.    Between-chain average method. 1: Arithmetic mean; 2: Bayesian Model Averaging (BMA); 3: Inverse variance weighting; 4: Likelihood weighting
+average_style: 2              # ::Int64.    Between-chain average method. 1: Arithmetic mean; 2: Bayesian Model Averaging (BMA); 3: Inverse variance weighting; 4: Likelihood weighting
 cmax: 20.0                    # ::Float64.  Max 1000/Q on colorbar
 xyMap: true                   # ::Bool.     Work on x-y cross section with a given z value
 z0:                           # ::Array{Int64,1}. The given z value (vertical axis)

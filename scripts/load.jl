@@ -29,6 +29,79 @@ function load_UUP07(par::Dict{String,Any})
     for iz = 1:nz
         for ilat = 1:nlat
             for ilon = 1:nlon
+                line_index = (iz-1)*nlat + (ilat-1) + 5
+                vp[ilon, ilat, iz] = parse(Float64, split(vel[line_index])[ilon])
+                sn[ilon, ilat, iz] = 1/vp[ilon, ilat, iz]
+            end
+        end
+    end
+
+    if par["coordinates"] == 1
+        # itp = interpolate((round.(lon;digits=2)[:,1],round.(lat;digits=2)[1,:],z),sn[1,:,:,:],BSpline(Linear()), OnGrid()) # for uniformly gridded data
+        itp = interpolate((lons, lats, z), sn[:,:,:],Gridded(Linear()))
+        #08/23/23 yurong: dangerous! extrapolation is included!
+        itp = extrapolate(itp, Flat())
+
+        lon_bounds = (minimum(lons), maximum(lons))
+        lat_bounds = (minimum(lats), maximum(lats))
+        z_bounds = (first(z), last(z))
+
+        println("Lon bounds: ", lon_bounds)
+        println("Lat bounds: ", lat_bounds)
+        println("Z bounds: ", z_bounds)
+        return itp
+
+    elseif par["coordinates"] == 2
+        par["lat0"] = -23.1000
+        dataLat = repeat(lats', length(lons), 1)
+        dataLon = repeat(lons, 1, length(lats))
+        (x, y) = lonlat2xy(par["lon0"], par["lat0"], par["beta"], dataLon, dataLat)
+
+        itp = interpolate((round.(x;digits=2)[:,1],round.(y;digits=2)[1,:],z),sn[:,:,:],Gridded(Linear()))
+        #08/23/23 yurong: dangerous! extrapolation is included!
+        itp = extrapolate(itp, Flat())
+
+        x_bounds = (minimum(x), maximum(x))
+        y_bounds = (minimum(y), maximum(y))
+        z_bounds = (first(z), last(z))
+        println("X bounds: ", x_bounds)
+        println("Y bounds: ", y_bounds)
+        println("Z bounds: ", z_bounds)
+        return itp
+    else
+        error("\"coordinates\" options are 1(Spherical coordinate system) and 2(Cartesian coordinate system).")
+    end
+end
+
+function load_Fan2024(par::Dict{String,Any})
+    """
+    Return interp function based on Wang et al. (2024) velocity model.
+
+    Parameters
+    ----------
+    - `par` : Dict{String,Any}
+
+    Returns
+    -------
+    - `itp` : interpolate((lon ::Vector{Float64},lat ::Vector{Float64},z ::Vector{Float64}), sn ::Array{Float64, 3})
+        Function to interpolate slowness (s/m) based on a given (lon, lat, z).
+    """
+    vel = readlines(par["DataDir"] * par["vel_Fan2024"])
+    bld, nlon, nlat, nz = parse(Float64, split(vel[1])[1]), parse(Int, split(vel[1])[2]),
+                            parse(Int, split(vel[1])[3]), parse(Int, split(vel[1])[4])
+
+    lons    = [parse(Float64,i) for i in split(vel[2])]
+    lats    = [parse(Float64,i) for i in split(vel[3])]
+    z       = [parse(Float64,i) for i in split(vel[4])]
+    
+    lons[lons.<0] .+= 360
+    
+    sn, vp = Array{Float64,3}(undef,nlon,nlat,nz), Array{Float64,3}(undef,nlon,nlat,nz)
+    
+    for iz = 1:nz
+        for ilat = 1:nlat
+            for ilon = 1:nlon
+                line_index = (iz-1)*nlat + (ilat-1) + 5
                 vp[ilon, ilat, iz] = parse(Float64, split(vel[line_index])[ilon])
                 sn[ilon, ilat, iz] = 1/vp[ilon, ilat, iz]
             end
