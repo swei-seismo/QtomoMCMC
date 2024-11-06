@@ -215,3 +215,37 @@ function delete_old_checkpoint(par, chain_id, iteration, percentage, percent_int
     end
 end
 
+function calc_raycount(ix::Int64,
+    node::Array{Tuple{Float64,Float64,Float64},3},
+    par::Dict{String,Any}, 
+    dataStruct::Dict{String,AbstractArray{Float64,N} where N},
+    RayTraces::Dict{String,Array{Float64,2}}
+    )
+    """
+    Calculate the ray count for a given cell.
+    """
+    lat0,lon0,beta = par["lat0"],par["lon0"],par["beta"]
+    x,y,z = node[ix]
+    # dims = size(node)
+    # cartesian_index = CartesianIndices(dims)[ix]
+    # i, j, k = Tuple(cartesian_index)
+    hitcount = 0
+    for iray in 1:size(RayTraces["rayX"])[2]
+        rayX = RayTraces["rayX"][:,iray]
+        nsegments = length(rayX[.!isnan.(rayX)])
+        for isegment in 1:nsegments-1
+            A = [RayTraces["rayX"][isegment,iray], RayTraces["rayY"][isegment,iray], RayTraces["rayZ"][isegment,iray]]
+            B = [RayTraces["rayX"][isegment+1,iray], RayTraces["rayY"][isegment+1,iray], RayTraces["rayZ"][isegment+1,iray]]
+            dist = cart_point2segment([x,y,z], A, B)[1]
+            if dist < par["XYnodeSpacing"]*sqrt(2)
+                hitcount += 1
+                break
+            end
+        end
+    end
+    # if hitcount > 0
+    #     println("Hitcount: ", hitcount)
+    # end
+
+    return hitcount
+end

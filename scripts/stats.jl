@@ -1,4 +1,4 @@
-using Base
+using Base, LinearAlgebra
 function lonlat2xy( 
     lon0::Float64, 
     lat0::Float64, 
@@ -10,6 +10,13 @@ function lonlat2xy(
     # lon0, lat0: reference location
     # beta: angle of x axis from east (counterclockwise)
     re = 6371
+    if isa(lon1, AbstractArray)
+        lon1[lon1 .< 0] .= lon1[lon1 .< 0] .+ 360
+    elseif lon1 < 0
+        lon1 += 360
+    end
+    
+
     # pi = 4.*atan(1.)
     
     r2d = 180.0 / pi
@@ -357,6 +364,7 @@ end
 function point_line_distance(latp, lonp, lat1, lon1, lat2, lon2)
     """
     Calculate the distance between a point and a line segment.
+    In 2D space and spherical system.
 
     Parameters
     ----------
@@ -387,4 +395,43 @@ function point_line_distance(latp, lonp, lat1, lon1, lat2, lon2)
 
     # Calculate the distance between the point and the line segment
     return 2 * area / d3
+end
+
+function cart_point2segment(point::Vector{Float64}, A::Vector{Float64}, B::Vector{Float64})
+    """
+    Calculate the distance between a point and a line segment.
+    In 3D space and Cartesian system.
+
+    Parameters
+    ----------
+    - `point`:  The coordinates of the point.
+    - `A`:      The coordinates of the first endpoint of the segment.
+    - `B`:      The coordinates of the second endpoint of the segment.
+
+    Returns
+    -------
+    - `distance`:       The distance between the point and the line segment.
+    - `closest_point`:  The coordinates of the closest point on the segment.
+
+    """
+
+    AB = B - A
+    AP = point - A
+
+    t = dot(AP, AB) / dot(AB, AB)
+
+    # Check if the projected point is within the segment
+    if 0.0 <= t <= 1.0
+        # Calculate perpendicular distance to the segment
+        closest_point = A + t * AB
+        distance = norm(point - closest_point)
+    else
+        # If the projected point is outside the segment, use the closest endpoint
+        distance_to_A = norm(point - A)
+        distance_to_B = norm(point - B)
+        distance = min(distance_to_A, distance_to_B)
+        closest_point = distance == distance_to_A ? A : B
+    end
+
+    return distance, closest_point
 end
