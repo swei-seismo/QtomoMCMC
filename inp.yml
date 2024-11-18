@@ -53,7 +53,7 @@ prior: 1                      # ::Int64.    Uniform:1, normal:2, or exponential:
 
 
 #=====Monte Carlo parameters=====#
-n_chains: 50                   # ::Int64.    Per script, not in total. See iter field in run_batch.pbs
+n_chains: 20                   # ::Int64.    Per script, not in total. See iter field in run_batch.pbs
 n_iter: 1e6                   # ::Float64.  How many times you iterate each chain
 burn_in: 5e5                  # ::Float64.  Don't save until you get to this iteration
 keep_each: 1e2                # ::Float64.  How often to save a model post burnin

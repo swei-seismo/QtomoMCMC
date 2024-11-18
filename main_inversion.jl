@@ -1,6 +1,8 @@
-using JLD, HDF5
+using JLD
+using HDF5
+using Plots
 using Distributed 
-using Glob,YAML, Plots
+using Glob,YAML
 @everywhere include("./scripts/model.jl")
 @everywhere include("./scripts/utils.jl")
 @everywhere include("./scripts/stats.jl")
@@ -20,7 +22,7 @@ println("--------Inversion End-------")
 
 
 println("--------Plotting Models-------")
-@time plot_model_hist(models, dataStruct, RayTraces, par, 30.0)
+# @time plot_model_hist(models, dataStruct, RayTraces, par, 30.0)
 # @time plot_convergence(par, 1)
 
 

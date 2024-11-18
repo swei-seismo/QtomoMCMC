@@ -9,6 +9,10 @@ include("./scripts/utils.jl")
 
 
 file_name = "inp.yml"
+skip_station = false
+skip_sta_lst = ["A01"]
+
+
 @time par = load_par_from_yml(file_name)
 if par["vel"] == "UUP07"
     @time itp = load_UUP07(par)
@@ -66,12 +70,12 @@ function intersect_trace_raypath()
     f2 = open(par["base_dir"] * "data/raypaths.dat", "w")
 
     # Filter and write matched records from loadatten to p_tstar_matched.dat
-    for line in loadatten
-        tokens = split(line)
-        if tokens[1] in oridset && tokens[2] in sta[tokens[1]]
-            println(f1, line)
-        end
-    end
+    # for line in loadatten
+    #     tokens = split(line)
+    #     if tokens[1] in oridset && tokens[2] in sta[tokens[1]]
+    #         println(f1, line)
+    #     end
+    # end
 
     # Filter and write matched records from loadrayp to raypaths_matched.dat
     flag = false  # This is used to ensure subsequent lines of a matched record are also written
@@ -81,8 +85,18 @@ function intersect_trace_raypath()
         tokens = split(line)
         if length(tokens) > 4  # This appears to identify header lines in the dataset
             if tokens[1] in oridset && tokens[2] in sta[tokens[1]]
-                flag = true  # Match found, so set flag to true
-                println(f2, line)
+                if skip_station && tokens[2] in skip_sta_lst
+                    flag = false
+                else
+                    flag = true  # Match found, so set flag to true
+                    println(f2, line)
+                    for line_atten in loadatten
+                        tokens_atten = split(line_atten)
+                        if tokens[1] == tokens_atten[1] && tokens[2] == tokens_atten[2]
+                            println(f1, line_atten)
+                        end
+                    end
+                end
             else
                 flag = false  # No match, so set flag to false
             end
