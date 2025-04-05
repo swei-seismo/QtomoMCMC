@@ -51,6 +51,7 @@ if isfile(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model.jld
     model_hist = model_info["model_hist"]
     w_chain_norm = model_info["w_chain_norm"]
     w_all = model_info["w_all"]
+    par["coordinates"] = 2
 else
     println("--------Loading Models-------")
     model_hist = []
@@ -221,7 +222,7 @@ end
 
 # cross section
 for ixsec in 1:4
-    line_fl = "/mnt/home/yurong/Data/MCMC/Tonga/Data/gmt/line$(ixsec).dat"
+    line_fl = "/mnt/home/yurong/data/Tonga/MCMC/gmt/line$(ixsec).dat"
     line = readdlm(line_fl)
     xsec_x = map(first, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
     xsec_y = map(last, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
@@ -258,7 +259,7 @@ open(par["base_dir"] * "TongaAttenData/weights.txt", "w") do io
     end
 end
 # read the locations
-loc = readdlm("/mnt/home/yurong/Data/MCMC/Tonga/Data/gmt/loc.dat")
+loc = readdlm("/mnt/home/yurong/data/Tonga/MCMC/gmt/loc.dat")
 for i in 1:size(loc,1)
     m = []
     iloc = loc[i,:]

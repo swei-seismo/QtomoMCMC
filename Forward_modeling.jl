@@ -16,7 +16,7 @@ using ScatteredInterpolation
 ############## input  ################
 file_name = "inp.yml"
 add_noise = true
-interp4gmt = false
+interp4gmt = true
 ######################################
 
 println("--------Loading Data-------")
@@ -156,7 +156,7 @@ log_mu, log_sigma = -5.6146, 0.4023
     syn_aveatten[i] = 1000*ptS[i] / observed_traveltime[i]
 end
 
-tstar_dat = readdlm(par["DataDir"] * par["tstar_file"])
+tstar_dat = readdlm(par["base_dir"] * "data/p_tstar.dat")
 
 open("synthetic_tstar.dat", "w") do io
     for i = 1:size(tstar_dat, 1)
