@@ -223,6 +223,7 @@ function calc_raycount(ix::Int64,
     )
     """
     Calculate the ray count for a given cell.
+    Works in Cartesian coordinates.
     """
     lat0,lon0,beta = par["lat0"],par["lon0"],par["beta"]
     x,y,z = node[ix]

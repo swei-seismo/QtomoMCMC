@@ -20,9 +20,9 @@ raycount_threshold = 5
 par = load_par_from_yml(file_name)
 lon0, lat0, beta = par["lon0"], par["lat0"], par["beta"]
 
-if isfile(joinpath(par["base_dir"], "data/RayCount.jld"))
+if isfile(joinpath(par["base_dir"], "data/RayCount_update.jld"))
     println("--------Loading Ray Count-------")
-    raycount_info = load(joinpath(par["base_dir"], "data/RayCount.jld"))
+    raycount_info = load(joinpath(par["base_dir"], "data/RayCount_update.jld"))
     node = raycount_info["node"]
     par = raycount_info["par"]
     dataStruct = raycount_info["dataStruct"]
@@ -41,8 +41,6 @@ else
         println("--------Converting Coordinates-------")
         result = lonlat2xy(lon0, lat0, beta, RayTraces["rayX"], RayTraces["rayY"])
         RayTraces["rayX"], RayTraces["rayY"] = result[1], result[2]
-        dataStruct["xVec"] = -93.14142445337606:20.0:986.8585755466239
-        dataStruct["yVec"] = 421.9417419911798:20.0:981.9417419911798
     end
 
 
@@ -50,7 +48,12 @@ else
     node = fill((0.0, 0.0, 0.0), length(dataStruct["xVec"]), length(dataStruct["yVec"]), length(dataStruct["zVec"]))
 
     for i in 1:length(dataStruct["xVec"]), j in 1:length(dataStruct["yVec"]), k in 1:length(dataStruct["zVec"])
-        node[i,j,k] = (dataStruct["xVec"][i], dataStruct["yVec"][j], dataStruct["zVec"][k])
+        if par["coordinates"] == 1
+            (x,y)= lonlat2xy(lon0, lat0, beta, dataStruct["xVec"][i], dataStruct["yVec"][j])
+        else
+            (x,y) = (dataStruct["xVec"][i], dataStruct["yVec"][j])
+        end
+        node[i,j,k] = (x, y, dataStruct["zVec"][k])
     end
 
 
@@ -63,7 +66,7 @@ else
 
 
     println("--------Saving Ray Count-------")
-    save(joinpath(par["base_dir"], "data/RayCount.jld"), "raycount", raycount, "node", node, "par", par, "dataStruct", dataStruct)
+    save(joinpath(par["base_dir"], "data/RayCount_update.jld"), "raycount", raycount, "node", node, "par", par, "dataStruct", dataStruct)
     println("--------Ray Count Saved-------")
 end
 
@@ -82,7 +85,11 @@ for l0 in par["z0"]
     map_raymask = ifelse.(map_raycount .> raycount_threshold, 0.0, 0.9)
     open(par["base_dir"] * "TongaAttenData/RayCount_map_$(l0).txt", "w") do io
         for i in 1:size(map_raycount, 1), j in 1:size(map_raycount, 2)
-            lon,lat = xy2lonlat(lon0, lat0, beta, map_x[i,j], map_y[i,j])
+            if par["coordinates"] == 1
+                (lon, lat) = (map_x[i,j], map_y[i,j])
+            else
+                lon,lat = xy2lonlat(lon0, lat0, beta, map_x[i,j], map_y[i,j])
+            end
             write(io, "$(lon)\t$(lat)\t$(map_raycount[i,j])\t$(map_raymask[i,j])\n")
         end
     end
@@ -90,10 +97,16 @@ end
 
 # cross section
 for ixsec in 1:4
-    line_fl = "/mnt/home/yurong/Data/MCMC/Tonga/Data/gmt/line$(ixsec).dat"
+    line_fl = "/mnt/home/yurong/data/Tonga/MCMC/gmt/line$(ixsec).dat"
     line = readdlm(line_fl)
-    xsec_x = map(first, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
-    xsec_y = map(last, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
+    if par["coordinates"] == 1
+        xsec_x = line[:,1]
+        xsec_x = ifelse.(xsec_x .< 0, xsec_x .+ 360.0, xsec_x)
+        xsec_y = line[:,2]
+    else
+        xsec_x = map(first, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
+        xsec_y = map(last, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
+    end
     dist = line[:,3]
     open(par["base_dir"] * "TongaAttenData/RayCount_xsec_$(ixsec).txt", "w") do io
         for xsec_z in 0.0:20.0:660.0

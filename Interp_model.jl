@@ -31,9 +31,6 @@ make_dir(par, file_name)
 if isdir(par["base_dir"] * "TongaAttenData") == false
     mkdir(par["base_dir"] * "TongaAttenData")
 end
-# add 50 km to the zVec
-dataStruct["xVec"] = -93.14142445337606:20.0:986.8585755466239
-dataStruct["yVec"] = 421.9417419911798:20.0:981.9417419911798
 zVec = collect(dataStruct["zVec"])
 insert!(zVec, searchsortedfirst(zVec, 50.0), 50.0)
 dataStruct["zVec"] = zVec
@@ -41,9 +38,9 @@ dataStruct["zVec"] = zVec
 println("--------Data Loaded-------")
 
 
-if isfile(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model.jld"))
+if isfile(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model_updated.jld"))
     println("--------Loading Interpolated Model-------")
-    model_info = load(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model.jld"))
+    model_info = load(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model_updated.jld"))
     model_mean = model_info["model_mean"]
     model_poststd = model_info["model_poststd"]
     model_skeness = model_info["model_skeness"]
@@ -51,7 +48,6 @@ if isfile(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model.jld
     model_hist = model_info["model_hist"]
     w_chain_norm = model_info["w_chain_norm"]
     w_all = model_info["w_all"]
-    par["coordinates"] = 2
 else
     println("--------Loading Models-------")
     model_hist = []
@@ -79,17 +75,6 @@ else
         end
     end
     println("--------Models Loaded-------")
-
-    if par["coordinates"] == 1
-        for i in 1:length(model_hist)
-            for j in 1:length(model_hist[i])
-                coor = lonlat2xy(lon0, lat0, beta, model_hist[i][j].xCell, model_hist[i][j].yCell)
-                model_hist[i][j].xCell = coor[1]
-                model_hist[i][j].yCell = coor[2]
-            end
-        end
-        par["coordinates"] = 2
-    end
 
     println("--------Interpolating Models-------")
 
@@ -160,7 +145,7 @@ else
     end
 
     println("--------Saving Interpolated Model-------")
-    save(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model.jld"), "model_mean", model_mean, "model_poststd", model_poststd, "model_skeness", model_skeness, "model_kurtosis", model_kurtosis, "model_hist", model_hist, "w_chain_norm", w_chain_norm,"w_all", w_all)
+    save(joinpath(par["base_dir"], "TongaAttenData/Interpolated_Atten_Model_updated.jld"), "model_mean", model_mean, "model_poststd", model_poststd, "model_skeness", model_skeness, "model_kurtosis", model_kurtosis, "model_hist", model_hist, "w_chain_norm", w_chain_norm,"w_all", w_all)
     println("--------Interpolated Model Saved-------")
 end
 
@@ -175,13 +160,13 @@ itp_model_skeness = extrapolate(itp_model_skeness, Flat())
 itp_model_kurtosis = extrapolate(itp_model_kurtosis, Flat())
 
 if Add_ray_mask == true
-    if isfile(joinpath(par["base_dir"], "data/RayCount.jld"))
+    if isfile(joinpath(par["base_dir"], "data/RayCount_update.jld"))
         println("--------Loading Interpolated Ray Count-------")
-        raycount_info = load(joinpath(par["base_dir"], "data/RayCount.jld"))
+        raycount_info = load(joinpath(par["base_dir"], "data/RayCount_update.jld"))
         raycount = raycount_info["raycount"]
         node = raycount_info["node"]
     else
-       println("ERROR: Couldn't Find RayCount.jld")
+       println("ERROR: Couldn't Find RayCount_update.jld")
        println("Please run calc_raycount.jl first")
        exit()
     end
@@ -214,18 +199,33 @@ for l0 in par["z0"]
     end
     open(par["base_dir"] * "TongaAttenData/Atten_map_$(l0).txt", "w") do io
         for i in 1:size(map_model, 1), j in 1:size(map_model, 2)
-            lon,lat = xy2lonlat(lon0, lat0, beta, map_x[i,j], map_y[i,j])
+            if par["coordinates"] == 1
+                lon, lat = map_x[i,j], map_y[i,j]
+            else
+                (lon, lat) = xy2lonlat(lon0, lat0, beta, map_x[i,j], map_y[i,j])
+            end
             write(io, "$(lon)\t$(lat)\t$(map_model[i,j])\t$(map_model_poststd[i,j])\t$(map_model_mask[i,j])\t$(map_model_alpha[i,j])\t$(map_model_skeness[i,j])\t$(map_model_kurtosis[i,j])\n")
         end
     end
+    println("--------Map $(l0) Saved-------")
+    println("lon:\n", dataStruct["xVec"])
+    println("lat:\n", dataStruct["yVec"])
+    println("depth:\n", dataStruct["zVec"])
 end
 
 # cross section
 for ixsec in 1:4
     line_fl = "/mnt/home/yurong/data/Tonga/MCMC/gmt/line$(ixsec).dat"
     line = readdlm(line_fl)
-    xsec_x = map(first, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
-    xsec_y = map(last, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
+    if par["coordinates"] == 1
+        xsec_x = line[:,1]
+        xsec_x = ifelse.(xsec_x .< 0, xsec_x .+ 360, xsec_x)
+        xsec_y = line[:,2]
+    else
+        xsec_x = map(first, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
+        xsec_y = map(last, lonlat2xy.(lon0, lat0, beta, line[:,1], line[:,2]))
+    end
+    
     dist = line[:,3]
     open(par["base_dir"] * "TongaAttenData/Atten_xsec_$(ixsec).txt", "w") do io
         for xsec_z in 20.0:20.0:660.0
