@@ -11,7 +11,7 @@ using Glob,YAML
 @everywhere include("./scripts/load.jl")
 @everywhere include("./scripts/inversion_function.jl")
 
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 @time par = load_par_from_yml(file_name)
 @time (dataStruct, RayTraces) = load_data_Tonga(par)
 make_dir(par, file_name)
@@ -22,7 +22,7 @@ println("--------Inversion End-------")
 
 
 println("--------Plotting Models-------")
-# @time plot_model_hist(models, dataStruct, RayTraces, par, 30.0)
-# @time plot_convergence(par, 1)
+@time plot_model_hist(models, dataStruct, RayTraces, par, 30.0)
+@time plot_convergence(par, 1)
 
 

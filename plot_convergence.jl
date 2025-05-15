@@ -13,7 +13,7 @@ using Glob, Plots, YAML
 std_threshold = 5
 transparency_threshold = 13
 
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 
 println("--------Loading Data-------")
 @time par = load_par_from_yml(file_name)

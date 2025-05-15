@@ -14,7 +14,7 @@ using ScatteredInterpolation
 @everywhere include("./scripts/inversion_function.jl")
 
 ############## input  ################
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 add_noise = true
 interp4gmt = true
 ######################################

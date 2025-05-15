@@ -9,7 +9,7 @@ using Glob,YAML, Plots
 @everywhere include("./scripts/load.jl")
 @everywhere include("./scripts/inversion_function.jl")
 
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 @time par = load_par_from_yml(file_name)
 @time (dataStruct, RayTraces) = load_data_Tonga(par)
 make_dir(par, file_name)

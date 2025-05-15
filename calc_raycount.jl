@@ -13,7 +13,7 @@ using DelimitedFiles
 @everywhere include("./scripts/inversion_function.jl")
 
 ##########    INPUTS    ##########
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 raycount_threshold = 5
 ##################################
 

@@ -1,31 +1,9 @@
-1. Spherical interpolation itp = interpolate((lons, lats, z), sn[:,:,:],Gridded(Linear())) is valid, as gridded interpolation treats each axis independently
+# QtomoMCMC
 
-The output is the same as
-itp = itp_sph_v_builder(lons, lats, z, sn)
+QtomoMCMC is a Julia-based inversion tool developed for 3D body-wave attenuation tomography, supporting two inversion modes: relative t* and absolute t*. It uses a transdimensional Markov Chain Monte Carlo (MCMC) method within a Bayesian framework.
 
-function itp_sph_v_builder(lons, lats, zs, sn)
-    function interp_func(lon_inp, lat_inp, z)
-    if z <= zs[1]
-        z1, z2 = zs[1], zs[1]
-        i1, i2 = 1, 1
-    elseif z >= zs[end]
-        z1, z2 = zs[end], zs[end]
-        i1, i2 = length(zs)-1, length(zs)
-    else
-        i2 = searchsortedfirst(zs, z)
-        i1 = i2 - 1
-        z1, z2 = zs[i1], zs[i2]
-    end
+# User Guide
+Please refer to the [Wiki page](https://github.com/swei-seismo/QtomoMCMC/wiki)
 
-    itp_2D_1 = interpolate((lons, lats), sn[:,:,i1],Gridded(Linear()))
-    itp_2D_2 = interpolate((lons, lats), sn[:,:,i2],Gridded(Linear()))
-    zeta1 = itp_2D_1(lon_inp, lat_inp)
-    zeta2 = itp_2D_2(lon_inp, lat_inp)
-    if z1 == z2
-        return zeta1
-    else
-        zeta = zeta1 + (z - z1) * (zeta2 - zeta1) / (z2 - z1)
-        return zeta
-    end
-    end
-end
+# References
+In submission:

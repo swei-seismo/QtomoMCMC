@@ -17,7 +17,7 @@ Total_mask = 999
 Alpha_mask = 5
 Add_ray_mask = true
 raycount_threshold = 5
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 ###################################
 
 

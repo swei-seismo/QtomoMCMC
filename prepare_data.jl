@@ -8,18 +8,18 @@ include("./scripts/load.jl")
 include("./scripts/utils.jl")
 
 
-file_name = "inp.yml"
+file_name = "TongaLau_Spherical.yml"
 skip_station = false
 skip_sta_lst = ["A01"]
 
 
 @time par = load_par_from_yml(file_name)
-if par["vel"] == "UUP07"
-    @time itp = load_UUP07(par)
-elseif par["vel"] == "Fan2024"
-    @time itp = load_Fan2024(par)
-elseif par["vel"] == "lau"
-    @time itp = load_lauvel(par)
+if par["vel_type"] == 1
+    @time itp = load_vel_type1(par)
+elseif par["vel_type"] == 2
+    @time itp = load_vel_type2(par)
+elseif par["vel_type"] == 3
+    @time itp = load_vel_type3(par)
 end
 @time Find_Qp = load_PREM(par)
 make_dir(par, file_name)
@@ -520,6 +520,7 @@ if par["coordinates"] == 1
     litho_rayl, litho_rayu = @time load_sph_raypath()
     @time load_sph_traceinfo(litho_rayl, litho_rayu)
 elseif par["coordinates"] == 2
+    println("--------Loading Cartesian Raypath-------")
     litho_rayl, litho_rayu = @time load_cart_raypath()
     @time load_cart_traceinfo(litho_rayl, litho_rayu)
 end

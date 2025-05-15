@@ -1,0 +1,81 @@
+#====Inversion setting parameters====#
+coordinates: 1                # ::Int64.    1: Spherical Coordinates, 2: Cartesian Coordinates
+    # note that if the model space is rotated (beta != 0), the [x,y] might be different for each layer 
+    # due to the grid creation, we are choosing the first layer of [x,y] to interpolate the velocity
+
+#The origin only used in cartesian coordinate system
+lon0: 174.6000                # ::Float64.  lon0 ∈ [0˚, 360˚）
+lat0: -23.1000                # ::Float64.
+beta: 0.463647609             # ::Float64.  Rotation angle in radian.
+
+debug_prior:  1               # ::Int64.    Decide whether the data will be used or not
+plot_voronoi: false           # ::Bool.     Plot each voronoi diagram in the generated models or not
+add_yVec:     1               # ::Int64.    0: only work in 2D: x- and z- axis; 1: 3D tomography. Currently only 1 is available
+add_systematic_tsterr: True   # ::Bool.     Whether or not to add the systematic error from t* inversion
+systematic_tsterr: 0.03       # ::Float64.  The systematic error from t* inversion
+ray_interpolate: True         # ::Bool.     Whether or not to interpolate the raytracing results
+seg_len: 10.5                 # ::Float64.  The maximum length of a ray segment
+interp_depth: 300.0           # ::Float64.  The maximum depth to interpolate the raypaths
+add_litho: true               # ::Bool.     Add a top lithospheric layer with low attenuation, Q from PREM.
+litho_thickness: 20.0         # ::Float64.  Lithospheric thickness in km. Estimated from Figure 10 (Rychert et al., 2020) with its age
+#====Inversion setting parameters====#
+
+
+#====File Paths====#
+DataDir: "./Data/"            # ::String.   The directory of the data
+PREM: "PREM_1s.csv"           # ::String.   The path of the PREM model
+sta_info: "stations.dat"      # ::String.   The path of the station information: Name, lon, lat, elevation
+vel_type: 3                        # ::Int64.   The velocity model type 1-3
+vel_file: "vel_type3_eg"        # ::String.   The path of the Fan2024 velocity model
+tstar_file: "p_tstar_Spherical.dat"  # ::String.   The path of the input t* data
+rayp_file: "raypaths_Spherical.dat"  # ::String.   The path of the input raypath data
+#====File Paths====#
+
+
+#====Voronoi diagram parameters====#
+sig: 10                       # ::Int64.    In percent of scales for all parameters.
+zeta_scale: 50                # ::Int64.    Maximum scale for zeta prior distribution
+max_cells: 100                # ::Int64.    The nCells of the inital model doesn't go over 100
+min_cells: 5                  # ::Int64.    Minimum for a box shaped anomaly
+max_sig: 0.1                  # ::Float64.  On t*. Currently unenabled.
+interp_style: 1               # ::Int64.    1: Nearest interpolation; 2: Inverse Distance Weighting. Similar results.
+enforce_discon: 0             # ::Int64.    Load a discontinuity, and use it in the inversion
+prior: 1                      # ::Int64.    Uniform:1, normal:2, or exponential:3. exponential not recommended
+#====Voronoi diagram parameters====#
+
+
+#=====Monte Carlo parameters=====#
+n_chains: 2                   # ::Int64.    Per script, not in total. See iter field in run_batch.pbs
+n_iter: 1e3                   # ::Float64.  How many times you iterate each chain
+burn_in: 5e2                  # ::Float64.  Don't save until you get to this iteration
+keep_each: 1e1                # ::Float64.  How often to save a model post burnin
+print_each: 1e2               # ::Float64.  How often to print to the screen if you are impatient and chekcing it (like I do)        
+save_percent: 5               # ::Int64.    Per iteration. How often to save the current state as a checkpoint. 
+#=====Monte Carlo parameters=====#
+
+
+#=====map parameters=====#
+max_depth: 660.0              # ::Float64.  In km
+min_depth: 0.0                # ::Float64.  In km, should just be zero
+buffer_cart: 100              # ::Int64.    In km. If zero, edges of the modeling domain are [max_x min_x max_y min_y] station locations. Add buffer to broader the imaging domain. 
+buffer_sph: 1                 # ::Int64.    In degree. If zero, edges of the modeling domain are [max_x min_x max_y min_y] station locations. Add buffer to broader the imaging domain. 
+ZnodeSpacing: 20              # ::Int64.    In km, how often in the z-direction do you grid the ray paths
+XYnodeSpacing: 20             # ::Int64.    In km. Not actually part of the inversion, but used for synthetic models.
+latlonnodeSpacing: 0.2        # ::Float64.  In degree. Not actually part of the inversion, but used for synthetic models.
+#=====map parameters=====#
+
+#====Plot Cross section parameters====#
+average_style: 2              # ::Int64.    Between-chain average method. 1: Arithmetic mean; 2: Bayesian Model Averaging (BMA); 3: Inverse variance weighting; 4: Likelihood weighting
+cmax: 20.0                    # ::Float64.  Max 1000/Q on colorbar
+xyMap: true                   # ::Bool.     Work on x-y cross section with a given z value
+z0:                           # ::Array{Int64,1}. The given z value (vertical axis)
+  - 50
+  - 100
+  - 300
+  - 500
+xzMap: true                   # ::Bool.     Work on x-z cross section with a given y value
+y0:                           # ::Array{Int64,1}     # the given y value (horizontal axis, E-W afer rotation of β)
+  - -20
+#====Plot Cross section parameters====#
+
+
